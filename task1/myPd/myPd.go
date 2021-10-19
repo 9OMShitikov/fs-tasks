@@ -9,8 +9,9 @@ import (
 	"regexp"
 )
 
+var digitCheck = regexp.MustCompile(`^[0-9]+$`)
+
 func isPidDir(f os.FileInfo) bool {
-	var digitCheck = regexp.MustCompile(`^[0-9]+$`)
 	return f.IsDir() && digitCheck.Match([]byte(f.Name()))
 }
 
