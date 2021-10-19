@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/oleg/Desktop/HW/parralel/hideArg/main.c
+/home/oleg/Desktop/HW/fs/task1/hideArg/main.c
 stdio.h
 -
 string.h

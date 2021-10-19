@@ -7,33 +7,13 @@
 #include <sys/prctl.h>
 
 int main(int argc, char *argv[]) {
-    int pid = getpid();
-
-    // Finding out length of first command line argument - from cmdline file
-    int buff_cap = 1024;
-
-    char filename[buff_cap];
-    sprintf(filename, "/proc/%d/cmdline", pid);
-
-    char buff[buff_cap];
-    FILE* f = fopen(filename, "r");
-    if (f == NULL) {
-        printf("failed to open cmdline file");
-        return 1;
-    }
-    char* tmp = fgets(buff, buff_cap, f);
-    if (tmp == NULL) {
-        printf("failed to read from cmdline file");
-        return 1;
-    }
-    if (fclose(f) == -1) {
-        printf("failed to close cmdline file");
-        return 1;
-    }
-
-    size_t cmd_len = strlen(buff);
+    // Finding out length of first command line argument
+    size_t cmd_len = strlen(argv[0]);
 
     // Then finding out pointer to start of command line arguments
+    int pid = getpid();
+    int buff_cap = 1024;
+    char filename[buff_cap];
     sprintf(filename, "/proc/%d/stat", pid);
     FILE* stats = fopen(filename, "r");
     if (stats == NULL) {
@@ -41,7 +21,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    tmp = fgets(buff, buff_cap, stats);
+    char buff[buff_cap];
+    char* tmp = fgets(buff, buff_cap, stats);
     if (!tmp) {
         printf("failed to read from stats file");
         return 1;
@@ -83,3 +64,4 @@ int main(int argc, char *argv[]) {
     sleep(300);
     return 0;
 }
+
