@@ -14,8 +14,15 @@ func isPidDir(f os.FileInfo) bool {
 	return f.IsDir() && digitCheck.Match([]byte(f.Name()))
 }
 
+var rexp = regexp.MustCompile(`\d \(.*\) \S -?\d+ ` + // pid, comm, state, ppid
+		`-?\d+ -?\d+ -?\d+ -?\d+ ` + // pgrp, session, tty_nr, tpgid
+		`\d+ \d+ \d+ \d+ ` + // flags, minflt, cminflt, majflt
+		`\d+ \d+ \d+ -?\d+ ` + // cmajflt, utime, stime, cutime
+		`-?\d+ -?\d+ -?\d+ -?\d+ ` + // cstime, priority, nice, num_threads
+		`-?\d+ \d+ (\d+) (-?\d+)`) //itrealvalue, starttime, vsize, rss
+
 // returns cmd, vsize and rss of process with given pid
-func retrieveInfo(pid string, rexp *regexp.Regexp) (string, string, string, error) {
+func retrieveInfo(pid string) (string, string, string, error) {
 	processStats, err := ioutil.ReadFile("/proc/" + pid +"/stat")
 	if err != nil {
 		return "", "", "", err
@@ -44,16 +51,10 @@ func main() {
 	}
 
 	fmt.Printf("%10s %16s %16s %s\n", "PID", "RSS", "VSIZE", "CMD")
-	rexp := regexp.MustCompile(`\d \(.*\) \S -?\d+ ` + // pid, comm, state, ppid
-		`-?\d+ -?\d+ -?\d+ -?\d+ ` + // pgrp, session, tty_nr, tpgid
-		`\d+ \d+ \d+ \d+ ` + // flags, minflt, cminflt, majflt
-		`\d+ \d+ \d+ -?\d+ ` + // cmajflt, utime, stime, cutime
-		`-?\d+ -?\d+ -?\d+ -?\d+ ` + // cstime, priority, nice, num_threads
-		`-?\d+ \d+ (\d+) (-?\d+)`) //itrealvalue, starttime, vsize, rss
 
 	for _, f := range contents {
 		if isPidDir(f) {
-			cmd, vsize, rss, err := retrieveInfo(f.Name(), rexp)
+			cmd, vsize, rss, err := retrieveInfo(f.Name())
 			if err != nil {
 				log.Fatal(err)
 			}
