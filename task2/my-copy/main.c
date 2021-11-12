@@ -7,20 +7,6 @@
 #include <sys/stat.h>
 #include <liburing.h>
 
-#define check_exit(res, msg) {\
-    if (res < 0) {\
-        fprintf(stderr, msg, strerror(-res));\
-        return -1;\
-    }\
-}
-
-#define check_cond(cond, msg) {\
-    if (cond) {\
-        fprintf(stderr, msg);\
-        return -1;\
-    }\
-}
-
 struct request_data {
     int read;
     size_t size, offset;
@@ -33,7 +19,10 @@ int submit_read(size_t read_size, size_t file_size, size_t *offset, struct iovec
     }
 
     struct io_uring_sqe* sqe = io_uring_get_sqe(ring);
-    check_cond(sqe == NULL, "Could not get SQE.\n")
+    if (sqe == NULL) {
+        fprintf(stderr, "Could not get SQE.\n");
+        return -1;
+    }
 
     r_data[id].read = 1;
     r_data[id].size = read_size;
@@ -48,7 +37,10 @@ int submit_read(size_t read_size, size_t file_size, size_t *offset, struct iovec
 int submit_write(struct iovec* iov, struct request_data* r_data,
                  int id, int fd, struct io_uring* ring) {
     struct io_uring_sqe* sqe = io_uring_get_sqe(ring);
-    check_cond(sqe == NULL, "Could not get SQE.\n");
+    if (sqe == NULL) {
+        fprintf(stderr, "Could not get SQE.\n");
+        return -1;
+    }
 
     r_data[id].read = 0;
     io_uring_prep_write_fixed(sqe, fd, iov[id].iov_base, r_data[id].size, r_data[id].offset, id);
@@ -60,24 +52,41 @@ int main(int argc, char* argv[]) {
     int N = 4;
     size_t read_size = 256 * 1024;
 
-    check_cond((argc != 3 && argc != 5), "Arguments were not provided");
+    if (argc != 3 && argc != 5) {
+        fprintf(stderr, "Arguments were not provided.\n"
+            "Arguments: in - name of input file, out - name of output file\n"
+            "Optional arguments: N - number of buffers, read_size - size of buffer (should be used together)\n");
+        return -1;
+    }
     if (argc == 5) {
         N = strtol(argv[3], NULL, 10);
         read_size = strtol(argv[4], NULL, 10);
     }
 
     int input = open(argv[1], O_RDONLY);
-    check_cond(input < 0, "Error while opening file\n");
+    if (input < 0) {
+        fprintf(stderr, "Error while opening input file\n");
+        return -1;
+    }
 
     int output = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0755);
-    check_cond(output < 0, "Error while opening file\n");
+    if (output < 0) {
+        fprintf(stderr, "Error while opening output file\n");
+        return -1;
+    }
 
     struct io_uring ring;
     int res = io_uring_queue_init(2 * N, &ring, 0);
-    check_exit(res, "Error while queue_init: %s\n");
+    if (res < 0) {
+        fprintf(stderr, "Error while queue_init: %s\n", strerror(-res));
+        return -1;
+    }
 
     char* buffers = malloc(N * read_size);
-    check_cond(buffers == NULL, "Error while allocating memory for buffer\n");
+    if (buffers == NULL) {
+        fprintf(stderr, "Error while allocating memory for buffer\n");
+        return -1;
+    }
 
     struct iovec iov[N];
     for (int i = 0; i < N; ++i) {
@@ -85,17 +94,25 @@ int main(int argc, char* argv[]) {
         iov[i].iov_base = buffers + i * read_size;
     }
     res = io_uring_register_buffers(&ring, iov, N);
-    check_exit(res, "Error registering buffers: %s\n");
+    if (res < 0) {
+        fprintf(stderr, "Error registering buffers: %s\n", strerror(-res));
+        return -1;
+    }
 
     struct stat st;
     res = fstat(input, &st);
-    check_exit(res, "Error while checking input file size: %s\n");
-    check_cond(!S_ISREG(st.st_mode), "Wrong file type\n");
+    if (res < 0) {
+        fprintf(stderr, "Error while checking input file size: %s\n", strerror(-res));
+        return -1;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        fprintf(stderr, "Wrong input file type. Input file should be regular\n");
+        return -1;
+    }
 
     size_t offset = 0;
     size_t to_write = st.st_size;
     size_t file_size = st.st_size;
-    //printf("Size: %ld\n", st.st_size);
 
     struct request_data r_data[N];
     for (int i = 0; i < N && offset != file_size; ++i) {
@@ -120,12 +137,14 @@ int main(int argc, char* argv[]) {
             res = io_uring_wait_cqe(&ring, &cqe);
         }
 
-        check_exit(res, "Error waiting for completion: %s\n");
-        //printf("!type_read: %d, read: %d, need: %zu, %lu, offs: %zu, to_write: %zu\n", r_data[(int)cqe->user_data].read,
-        //       cqe->res, r_data[(int)cqe->user_data].size,
-        //       cqe->res - r_data[(int)cqe->user_data].size,
-        //       offset, to_write);
-        check_exit(cqe->res, "Error in async operation: %s\n");
+        if (res < 0) {
+            fprintf(stderr, "Error waiting for completion: %s\n", strerror(-res));
+            return -1;
+        }
+        if (res < 0) {
+            fprintf(stderr, "Error in async operation: %s\n", strerror(-res));
+            return -1;
+        }
         int id = (int)cqe->user_data;
         io_uring_cqe_seen(&ring, cqe);
         if (r_data[id].read) {
@@ -149,8 +168,14 @@ int main(int argc, char* argv[]) {
     free(buffers);
     io_uring_queue_exit(&ring);
     res = close(input);
-    check_exit(res, "Error while closing file: %s\n");
+    if (res == -1) {
+        fprintf(stderr, "Error while closing input file");
+        return -1;
+    }
     res = close(output);
-    check_exit(res, "Error while closing file: %s\n");
+    if (res == -1) {
+        fprintf(stderr, "Error while closing output file");
+        return -1;
+    }
     return 0;
 }
