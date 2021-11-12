@@ -165,9 +165,10 @@ func (file *fsFile) print() (err error) {
 	const bufLen = 4096
 	var buf [bufLen]byte
 
+	fmt.Println("Regular file:")
 	size := file.size
 	var readSize int
-	for i := 0; i < 20 && size > 0; i++ {
+	for size > 0 {
 		readSize, err = file.Read(buf[:])
 		if err != nil {
 			return
@@ -189,6 +190,7 @@ func (file *fsFile) printDir() (err error) {
 		return
 	}
 
+	fmt.Println("Directory:")
 	for _, dir := range res {
 		fmt.Println(dir.Name)
 	}
