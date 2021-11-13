@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/oleg/Desktop/HW/fs/task1/FUSEHello/main.c
+fuse.h
+-
+string.h
+-
+errno.h
+-
+fcntl.h
+-
+stdlib.h
+-
+

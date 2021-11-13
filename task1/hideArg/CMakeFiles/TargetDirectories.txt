@@ -1,0 +1,3 @@
+/home/oleg/Desktop/HW/fs/task1/hideArg/CMakeFiles/edit_cache.dir
+/home/oleg/Desktop/HW/fs/task1/hideArg/CMakeFiles/rebuild_cache.dir
+/home/oleg/Desktop/HW/fs/task1/hideArg/CMakeFiles/hideArg.dir

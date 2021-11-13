@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/oleg/Desktop/HW/fs/task1/hideArg/main.c
+stdio.h
+-
+string.h
+-
+fcntl.h
+-
+unistd.h
+-
+stdlib.h
+-
+sys/prctl.h
+-
+

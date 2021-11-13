@@ -1,0 +1,1 @@
+/usr/bin/cc -D_FILE_OFFSET_BITS=64 -g CMakeFiles/FUSEHello.dir/main.c.o -o FUSEHello  /usr/lib/x86_64-linux-gnu/libfuse.so 
