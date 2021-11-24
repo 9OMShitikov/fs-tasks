@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"reflect"
 )
 
 func extractLEStruct(data interface{},
 					 readerFunc func([]byte) (int, error)) (size uint, err error){
-	size = uint(reflect.Indirect(reflect.ValueOf(data)).Type().Size())
+	uSize := binary.Size(data)
+	if err != nil {
+		return
+	}
+	size = uint(uSize)
+
 	bytesBuf := make([]byte, size)
 	_, err = readerFunc(bytesBuf)
 	if err != nil {

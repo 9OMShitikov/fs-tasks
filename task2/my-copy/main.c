@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <liburing.h>
+#include <errno.h>
 
 struct request_data {
     int read;
@@ -20,7 +21,7 @@ int submit_read(size_t read_size, size_t file_size, size_t *offset, struct iovec
 
     struct io_uring_sqe* sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        fprintf(stderr, "Could not get SQE.\n");
+        fprintf(stderr, "could not get SQE.\n");
         return -1;
     }
 
@@ -38,7 +39,7 @@ int submit_write(struct iovec* iov, struct request_data* r_data,
                  int id, int fd, struct io_uring* ring) {
     struct io_uring_sqe* sqe = io_uring_get_sqe(ring);
     if (sqe == NULL) {
-        fprintf(stderr, "Could not get SQE.\n");
+        fprintf(stderr, "could not get SQE.\n");
         return -1;
     }
 
@@ -65,26 +66,26 @@ int main(int argc, char* argv[]) {
 
     int input = open(argv[1], O_RDONLY);
     if (input < 0) {
-        fprintf(stderr, "Error while opening input file\n");
+        perror("error while opening input file ");
         return -1;
     }
 
     int output = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0755);
     if (output < 0) {
-        fprintf(stderr, "Error while opening output file\n");
+        perror("error while opening output file ");
         return -1;
     }
 
     struct io_uring ring;
     int res = io_uring_queue_init(2 * N, &ring, 0);
     if (res < 0) {
-        fprintf(stderr, "Error while queue_init: %s\n", strerror(-res));
+        fprintf(stderr, "error while queue_init: %s\n", strerror(-res));
         return -1;
     }
 
     char* buffers = malloc(N * read_size);
     if (buffers == NULL) {
-        fprintf(stderr, "Error while allocating memory for buffer\n");
+        fprintf(stderr, "error while allocating memory for buffer\n");
         return -1;
     }
 
@@ -95,18 +96,18 @@ int main(int argc, char* argv[]) {
     }
     res = io_uring_register_buffers(&ring, iov, N);
     if (res < 0) {
-        fprintf(stderr, "Error registering buffers: %s\n", strerror(-res));
+        fprintf(stderr, "error registering buffers: %s\n", strerror(-res));
         return -1;
     }
 
     struct stat st;
     res = fstat(input, &st);
     if (res < 0) {
-        fprintf(stderr, "Error while checking input file size: %s\n", strerror(-res));
+        perror("error while checking input file size ");
         return -1;
     }
     if (!S_ISREG(st.st_mode)) {
-        fprintf(stderr, "Wrong input file type. Input file should be regular\n");
+        fprintf(stderr, "wrong input file type. Input file should be regular\n");
         return -1;
     }
 
@@ -138,13 +139,10 @@ int main(int argc, char* argv[]) {
         }
 
         if (res < 0) {
-            fprintf(stderr, "Error waiting for completion: %s\n", strerror(-res));
+            fprintf(stderr, "error waiting for completion: %s\n", strerror(-res));
             return -1;
         }
-        if (res < 0) {
-            fprintf(stderr, "Error in async operation: %s\n", strerror(-res));
-            return -1;
-        }
+
         int id = (int)cqe->user_data;
         io_uring_cqe_seen(&ring, cqe);
         if (r_data[id].read) {
@@ -169,12 +167,12 @@ int main(int argc, char* argv[]) {
     io_uring_queue_exit(&ring);
     res = close(input);
     if (res == -1) {
-        fprintf(stderr, "Error while closing input file");
+        perror("error while closing input file ");
         return -1;
     }
     res = close(output);
     if (res == -1) {
-        fprintf(stderr, "Error while closing output file");
+        perror("error while closing output file ");
         return -1;
     }
     return 0;
